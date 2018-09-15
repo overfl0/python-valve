@@ -199,7 +199,7 @@ class ServerQuerier(valve.source.BaseQuerier):
         self.request(messages.PlayersRequest(challenge=challenge["challenge"]))
         return messages.PlayersResponse.decode(self.get_response())
 
-    def rules(self):
+    def rules(self, bytes=False):
         """Retreive the server's game mode configuration
 
         This method allows you capture a subset of a server's console
@@ -221,8 +221,9 @@ class ServerQuerier(valve.source.BaseQuerier):
         |                    | corresponding string value                     |
         +--------------------+------------------------------------------------+
         """
+        cls = messages.RulesResponse if bytes is False else messages.RulesResponseBinary
 
         self.request(messages.RulesRequest(challenge=-1))
         challenge = messages.GetChallengeResponse.decode(self.get_response())
         self.request(messages.RulesRequest(challenge=challenge["challenge"]))
-        return messages.RulesResponse.decode(self.get_response())
+        return cls.decode(self.get_response())

@@ -137,12 +137,12 @@ class ByteField(MessageField):
     fmt = "B"
 
 
-class StringField(MessageField):
+class ByteStringField(MessageField):
     fmt = "s"
 
     @use_default
     def encode(self, value, values={}):
-        return value.encode("utf8") + b"\x00"
+        return value + b"\x00"
 
     @needs_buffer
     def decode(self, buffer, values={}):
@@ -152,6 +152,19 @@ class StringField(MessageField):
         field_size = terminator + 1
         field_data = buffer[:field_size-1]
         left_overs = buffer[field_size:]
+        return field_data, left_overs
+
+
+class StringField(ByteStringField):
+    fmt = "s"
+
+    @use_default
+    def encode(self, value, values={}):
+        return super(StringField, self).encode().encode("utf8")
+
+    @needs_buffer
+    def decode(self, buffer, values={}):
+        field_data, left_overs = super(StringField, self).decode(buffer, values=values)
         return field_data.decode("utf8", "ignore"), left_overs
 
 
@@ -515,14 +528,14 @@ class RulesRequest(Message):
     )
 
 
-class RulesResponse(Message):
+class RulesResponseBinary(Message):
 
     fields = (
         ByteField("response_type", validators=[lambda x: x == 0x45]),
         ShortField("rule_count"),
         MessageDictField("rules",
-                         StringField("key"),
-                         StringField("value"),
+                         ByteStringField("key"),
+                         ByteStringField("value"),
                          MessageArrayField.value_of("rule_count"))
     )
 
@@ -536,7 +549,18 @@ class RulesResponse(Message):
         # As of 2015-11-22, Quake Live servers on steam do not
         if packet.startswith(b'\xff\xff\xff\xff'):
             packet = packet[4:]
-        return super(cls, RulesResponse).decode(packet)
+        print(cls, RulesResponseBinary)
+        return super(RulesResponseBinary, cls).decode(packet)
+
+class RulesResponse(RulesResponseBinary):
+    fields = (
+        ByteField("response_type", validators=[lambda x: x == 0x45]),
+        ShortField("rule_count"),
+        MessageDictField("rules",
+                         StringField("key"),
+                         StringField("value"),
+                         MessageArrayField.value_of("rule_count"))
+    )
 
 # For Master Server
 class MSAddressEntryPortField(MessageField):
