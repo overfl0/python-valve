@@ -160,7 +160,7 @@ class StringField(ByteStringField):
 
     @use_default
     def encode(self, value, values={}):
-        return super(StringField, self).encode().encode("utf8")
+        return value.encode("utf8") + b"\x00"
 
     @needs_buffer
     def decode(self, buffer, values={}):
